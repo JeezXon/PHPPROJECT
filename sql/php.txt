@@ -1,0 +1,89 @@
+<?php 
+session_start();
+$sname = "localhost";
+$uname = "root";
+$password = "";
+$db_name = "testbd";
+
+$conn = mysqli_connect($sname, $uname, $password, $db_name);
+if ($conn->connect_error) {
+    die("Connection Failed: " . $conn->connect_error);
+}
+
+$clients = [];
+$result = $conn->query("SELECT Client_name FROM clients");
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $clients[] = $row;
+    }
+}
+
+$agents = [];
+$result = $conn->query("SELECT agent_name FROM agents"); 
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $agents[] = $row;
+    }
+}
+
+$tasks = [];
+$result = $conn->query("SELECT tconcern FROM tasks"); 
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $tasks[] = $row;
+    }
+}
+
+$reports = [];
+$result = $conn->query("SELECT c.Client_name, a.agent_name, t1.tconcern, t1.severity, t1.date_start, t1.date_end, r.Sttus
+                         FROM reports r 
+                         JOIN agents a ON r.Agent_Assigned = a.agent_name
+                         JOIN clients c ON r.Client = c.Client_name
+                         JOIN tasks t1 ON r.Severity = t1.severity
+                         JOIN tasks t2 ON r.Date_start = t2.date_start
+                         JOIN tasks t3 ON r.Date_end = t3.date_end");
+
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $reports[] = $row;  // Updated from $tasks to $reports
+    }
+}
+
+
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $Agent_Assigned = $_POST['agent_tname'];
+    $Client = $_POST['client_tname'];
+    $Severity = $_POST['severity'];
+    $Concern = $_POST['concern'];
+    $Date_start = $_POST['date_start'];
+    $Date_end = $_POST['date_end'];
+    $Sttus = $_POST['Sttus'];
+
+    // Prepare and bind the statement
+    $sql = "INSERT INTO reports (Agent_Assigned, Client, Severity, Concern, Date_start, Date_end, Sttus) VALUES (?, ?, ?, ?, ?, ?, ?)";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("sssssss", $Agent_Assigned, $Client, $Severity, $Concern, $Date_start, $Date_end, $Sttus);
+
+    if ($stmt->execute()) {
+        // Fetch updated reports
+        $result = $conn->query("SELECT c.Client_name, a.agent_name, t1.tconcern, t1.severity, t1.date_start, t1.date_end, r.Sttus
+                                 FROM reports r 
+                                 JOIN agents a ON r.Agent_Assigned = a.agent_name
+                                 JOIN clients c ON r.Client = c.Client_name
+                                 JOIN tasks t1 ON r.Severity = t1.severity
+                                 JOIN tasks t2 ON r.Date_start = t2.date_start
+                                 JOIN tasks t3 ON r.Date_end = t3.date_end");
+        $reports = [];
+        while ($row = $result->fetch_assoc()) {
+            $reports[] = $row;  // Collect the data into reports array
+        }
+    } else {
+        echo "<p>Error: " . $stmt->error . "</p>";
+    }
+    
+
+    $stmt->close();
+}
+
+$conn->close();
+?>
