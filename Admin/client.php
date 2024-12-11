@@ -1,5 +1,7 @@
 <?php
-include('db_connect.php');
+require __DIR__ . '/../Databases/db_connect.php';
+require __DIR__ . '/../Logs/loginSystem.php';
+
 
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action'])) {
     if ($_POST['action'] == 'add') {

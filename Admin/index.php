@@ -1,63 +1,16 @@
 <?php
 
-$sname = "localhost";
-$uname = "root";
-$password = "";
-$db_name = "testbd";
+  // Ensure the Database class is included
+require_once "Agent.php";     // Ensure the Agent class is included
 
-$conn = mysqli_connect($sname, $uname, $password, $db_name);
-if ($conn->connect_error) {
-    die("Connection Failed: " . $conn->connect_error);
-}
+// Initialize the Database and Agent classes
+$db = new Database();      // Instantiate the Database class
+$conn = $db->getConnection();  // Get the database connection
 
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] == 'add') {
-    $agent_name = $_POST['agent_name'] ?? '';
-    $agent_uname = $_POST['agent_uname'] ?? '';
-    $agent_pass = $_POST['agent_pass'] ?? '';
+$agent = new Agent($conn);  // Instantiate the Agent class with the database connection
 
-    $stmt = $conn->prepare("INSERT INTO agents (agent_name, agent_uname, agent_pass) VALUES (?, ?, ?)");
-    $stmt->bind_param("sss", $agent_name, $agent_uname, $agent_pass);
-    if ($stmt->execute()) {
-    } else {
-        echo "Error: " . $stmt->error;
-    }
-    $stmt->close();
-    header("Location: Homepage.php?page=agents");
-    exit();
-}
-
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['action']) && $_POST['action'] == 'edit') {
-    $id = $_POST['id'];
-    $agent_name = $_POST['agent_name'] ?? '';
-    $agent_uname = $_POST['agent_uname'] ?? '';
-    $agent_pass = $_POST['agent_pass'] ?? '';
-
-    $stmt = $conn->prepare("UPDATE agents SET agent_name=?, agent_uname=?, agent_pass=? WHERE id=?");
-    $stmt->bind_param("sssi", $agent_name, $agent_uname, $agent_pass, $id);
-    if ($stmt->execute()) {
-
-    } else {
-        echo "Error: " . $stmt->error; 
-    }
-    $stmt->close();
-    header("Location: Homepage.php?page=agents");
-    exit();
-}
-
-if (isset($_POST['delete'])) {
-    $agent_id = $_POST['agent_id'];
-    $stmt = $conn->prepare("DELETE FROM agents WHERE id=?");
-    $stmt->bind_param("s", $agent_id);
-    if ($stmt->execute()) {
-    } else {
-        echo "Error deleting record: " . $stmt->error;
-    }
-    $stmt->close();
-    header("Location: Homepage.php?page=agents");
-    exit();
-}
-
-$result = $conn->query("SELECT * FROM agents");
+// Get agents from the database
+$agents = $agent->getAllAgents();
 ?>
 
 <!DOCTYPE html>
@@ -148,7 +101,11 @@ $result = $conn->query("SELECT * FROM agents");
             </tr>
         </thead>
         <tbody>
-        <?php while ($row = $result->fetch_assoc()): ?>
+        <?php
+        // Check if there are agents
+        if ($agents) {
+            foreach ($agents as $row) {
+        ?>
             <tr>
                 <td><?php echo htmlspecialchars($row['agent_name']); ?></td>
                 <td><?php echo htmlspecialchars($row['agent_uname']); ?></td>
@@ -160,20 +117,13 @@ $result = $conn->query("SELECT * FROM agents");
                     </form>
                 </td>
             </tr>
-        <?php endwhile; ?>
+        <?php 
+            }
+        } else {
+            echo "<tr><td colspan='4'>No agents found.</td></tr>";
+        }
+        ?>
         </tbody>
     </table>
-
-    <?php
-    if (isset($_GET['edit'])) {
-        $edit_id = (int)$_GET['edit'];
-        $stmt = $conn->prepare("SELECT * FROM agents WHERE id=?");
-        $stmt->bind_param("i", $edit_id);
-        $stmt->execute();
-        $edit_result = $stmt->get_result();
-        $edit_row = $edit_result->fetch_assoc();
-        $stmt->close();
-    }
-    ?>
 </body>
 </html>

@@ -1,7 +1,8 @@
 <?php
 session_start();
 define('FPDF_FONTPATH','font/');
-require('fpdf.php'); // Adjust the path if necessary
+require __DIR__ . "/../fpdf.php"; // Adjust the path if necessary
+require __DIR__ . "/../Databases/db_connect.php";
 
 $sname = "localhost";
 $uname = "root";
